@@ -1,0 +1,1 @@
+Place your training, validation and test sets in '/train', '/valid' and '/test' folders respectively.
