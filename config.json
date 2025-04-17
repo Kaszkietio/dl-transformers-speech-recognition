@@ -1,0 +1,36 @@
+{
+    "seed": 42,
+    "data_path": "./data/dataset",
+    "augmentations_path": "./data/dataset/_background_noise_",
+    "model": "SimpleTransformer",
+    "model_params": {},
+    "optimizer": "AdamW",
+    "optimizer_params": {
+      "lr": 0.003,
+      "weight_decay": 0.01
+    },
+    "epochs": 80,
+    "warmup_epochs": 10,
+    "batch_size": 256,
+    "checkpoint_folder": "./checkpoints/testrun_testing",
+    "scheduler": "SequentialLR",
+    "scheduler_params": {
+        "schedulers": {
+            "LinearLR" : {
+                "start_factor": 0.1,
+                "end_factor": 1.0,
+                "total_iters": 10
+            },
+            "ExponentialLR": {
+                "gamma": 0.9
+            }
+        },
+        "milestones": [
+            10
+        ]
+    },
+    "early_stopping": {
+      "patience": 10,
+      "min_delta": 0.001
+    }
+  }

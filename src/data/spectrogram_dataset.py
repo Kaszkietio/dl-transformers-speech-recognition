@@ -23,7 +23,8 @@ class SpectrogramDataset(Dataset):
             augmentations_path: Optional[str] = None
         ):
         self.root_dir_ = path
-        self.classes_ = os.listdir(path)
+        self.classes = os.listdir(path)
+        self.class_to_idx = {c: i for i, c in enumerate(self.classes)}
 
         if augmentations_path:
             self.augmentations = True
@@ -42,7 +43,7 @@ class SpectrogramDataset(Dataset):
             )
 
         self.audio_files_ = []
-        for i, c in enumerate(self.classes_):
+        for i, c in enumerate(self.classes):
             files_in_class = [(os.path.join(self.root_dir_, c, f), i)
                               for f in os.listdir(os.path.join(self.root_dir_, c))]
             self.audio_files_.extend(files_in_class)
