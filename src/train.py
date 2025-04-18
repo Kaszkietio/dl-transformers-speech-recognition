@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 from models.simple_transformer import SimpleTransformer
-from data.spectrogram_dataset import SpectrogramDataset
+from data.spectrogram_dataset import AudioToSpectrogramDataset
 from utils import set_seed, get_device
 
 MODELS = {
@@ -35,8 +35,8 @@ SCHEDULERS = {
 def get_datasets(data_path: str, augmentations_path: str, batch_size: int):
     train_path = os.path.join(data_path, "train")
     valid_path = os.path.join(data_path, "valid")
-    ds_train = SpectrogramDataset(train_path, augmentations_path=augmentations_path)
-    ds_valid = SpectrogramDataset(valid_path)
+    ds_train = AudioToSpectrogramDataset(train_path, augmentations_path=augmentations_path)
+    ds_valid = AudioToSpectrogramDataset(valid_path)
 
     loader_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True,
                               num_workers=2, pin_memory=True)

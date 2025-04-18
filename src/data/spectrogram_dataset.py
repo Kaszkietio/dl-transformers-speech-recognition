@@ -15,7 +15,7 @@ import torchaudio.functional as FA
 WAV_FILE_REGEX = re.compile(".*\.wav")
 
 
-class SpectrogramDataset(Dataset):
+class AudioToSpectrogramDataset(Dataset):
     def __init__(
             self,
             path: str,
@@ -55,18 +55,18 @@ class SpectrogramDataset(Dataset):
         X = torch.from_numpy(X)
         y = torch.tensor([class_id])
 
-        if self.augmentations:
+        if self.augmentations and self.classes[class_id] != "silence":
             noise_idx = torch.randint(0, len(self.background_noises), size=(1,)).item()
             noise = self.background_noises[noise_idx]
             noise_offset = torch.randint(0, len(noise) - len(X), size=(1,)).item()
-            noise = TA.Vol(gain=0.01)(noise[noise_offset:noise_offset + len(X)])
-            X = X + noise
+            noise = noise[noise_offset:noise_offset + len(X)]
+            X = TA.AddNoise()(X.unsqueeze(0), noise.unsqueeze(0), snr=torch.tensor([10.0])).squeeze(0)
 
         X = self.transform(X)
 
-        if self.augmentations:
-            X = TA.FrequencyMasking(freq_mask_param=20)(X)
-            X = TA.TimeMasking(time_mask_param=20)(X)
+        if self.augmentations and self.classes[class_id] != "silence":
+            X = TA.FrequencyMasking(freq_mask_param=10)(X)
+            X = TA.TimeMasking(time_mask_param=10)(X)
 
         # Resize to 128x128
         X = FV.resize(X.unsqueeze(0), (128, 128)).squeeze(0)
@@ -91,13 +91,19 @@ if __name__ == "__main__":
     print("Path to dataset:", os.path.abspath(config.dataset))
     print("Path to augmentations:", os.path.abspath(config.augmentations))
 
+    seed = 128
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
     start = timeit.default_timer()
-    dataset = SpectrogramDataset(config.dataset, augmentations_path=config.augmentations)
+    dataset = AudioToSpectrogramDataset(config.dataset, augmentations_path=config.augmentations)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True, num_workers=1)
     X, y = next(iter(dataloader))
     end = timeit.default_timer()
 
-    plt.imshow(X[0].numpy(), cmap='gray')
+    plt.imshow(X[0].numpy())
+    plt.title(f"Class: {dataset.classes[y[0].item()]}")
     plt.show()
     print("Shapes:", X.shape, y.shape)
     print("Mean and std of X:", np.mean(X.numpy()), np.std(X.numpy()))
