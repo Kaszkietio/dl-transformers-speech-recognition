@@ -1,7 +1,6 @@
 {
     "seed": 42,
-    "data_path": "./data/dataset",
-    "augmentations_path": "./data/dataset/_background_noise_",
+    "data_path": "./data/image_dataset",
     "model": "SimpleTransformer",
     "model_params": {},
     "optimizer": "AdamW",
@@ -10,8 +9,8 @@
       "weight_decay": 0.01
     },
     "epochs": 80,
-    "warmup_epochs": 10,
-    "batch_size": 256,
+    "warmup_epochs": 0,
+    "batch_size": 512,
     "checkpoint_folder": "./checkpoints/testrun_testing",
     "scheduler": "SequentialLR",
     "scheduler_params": {

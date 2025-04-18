@@ -3,7 +3,7 @@ from torch import nn
 from torch.nn import functional as F
 
 class SimpleTransformer(nn.Module):
-    def __init__(self, num_classes: int = 12):
+    def __init__(self, num_classes: int = 11):
         """
         Simple Transformer model for audio classification.
         Args:
@@ -12,7 +12,7 @@ class SimpleTransformer(nn.Module):
 
         super().__init__()
         # TODO
-        self.lin1 = nn.Linear(128*128, 256)
+        self.lin1 = nn.LazyLinear(256)
         self.lin2 = nn.Linear(256, 128)
         self.classifier = nn.LazyLinear(num_classes)
         self.relu = nn.ReLU()

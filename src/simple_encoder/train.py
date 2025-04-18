@@ -1,3 +1,7 @@
+import sys
+
+sys.path.append("./src")
+
 import os
 import json
 import mlflow
@@ -9,10 +13,11 @@ from torch.optim import SGD, AdamW
 from torch.optim.lr_scheduler import LinearLR, ExponentialLR, SequentialLR, ConstantLR
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+from torchvision.datasets import ImageFolder
+from torchvision.transforms import v2 as T
 from tqdm import tqdm
 
 from models.simple_transformer import SimpleTransformer
-from data.spectrogram_dataset import AudioToSpectrogramDataset
 from utils import set_seed, get_device
 
 MODELS = {
@@ -32,11 +37,21 @@ SCHEDULERS = {
 }
 
 
-def get_datasets(data_path: str, augmentations_path: str, batch_size: int):
+def get_datasets(data_path: str, batch_size: int):
     train_path = os.path.join(data_path, "train")
     valid_path = os.path.join(data_path, "valid")
-    ds_train = AudioToSpectrogramDataset(train_path, augmentations_path=augmentations_path)
-    ds_valid = AudioToSpectrogramDataset(valid_path)
+    ds_train = ImageFolder(train_path, transform=T.Compose([
+        T.ToTensor(),
+        T.ToDtype(torch.uint8, scale=True),
+        T.Resize((116, 116)),
+        T.ToDtype(torch.float32, scale=True),
+    ]))
+    ds_valid = ImageFolder(valid_path, transform=T.Compose([
+        T.ToTensor(),
+        T.ToDtype(torch.uint8, scale=True),
+        T.Resize((116, 116)),
+        T.ToDtype(torch.float32, scale=True),
+    ]))
 
     loader_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True,
                               num_workers=2, pin_memory=True)
@@ -141,9 +156,7 @@ def main(config: dict):
     print("Batch size:", batch_size)
     data_path = os.path.abspath(config["data_path"])
     print("Data path:", data_path)
-    augmentations_path = os.path.abspath(config["augmentations_path"])
-    print("Augmentation path:", augmentations_path)
-    spec_train, spec_valid = get_datasets(data_path, augmentations_path, batch_size)
+    spec_train, spec_valid = get_datasets(data_path, batch_size)
 
     model: nn.Module = MODELS[config["model"]](**config["model_params"]).to(device)
     print("Model:", config["model"])
@@ -173,12 +186,18 @@ def main(config: dict):
     warmup_epochs = int(config["warmup_epochs"])
     print("Warmup epochs:", warmup_epochs)
 
+    min_delta = float(config["early_stopping"]["min_delta"]) if "early_stopping" in config else 0.0
+    print("Min delta:", min_delta)
+    patience = int(config["early_stopping"]["patience"]) if "early_stopping" in config else 0
+    print("Patience:", patience)
+
     classes = spec_train.dataset.classes
     classes = sorted(classes, key=lambda x: spec_train.dataset.class_to_idx[x])
 
     best_model = None
     best_loss = float("inf")
     best_loss_epoch = 0
+
 
     # Setup MLflow
     mlflow.set_tracking_uri("http://localhost:3113")
@@ -205,6 +224,9 @@ def main(config: dict):
             model.eval()
             val_accuracy, val_loss = evaluate(model, spec_valid, criterion)
 
+            scheduler.step()
+
+            print(f"Epoch {epoch} finished")
             print(f"Loss: {loss:.4f}", end=' ')
             print(f"Accuracy: {accuracy:.4f}", end=' ')
             print(f"Validation Loss: {val_loss:.4f}", end=' ')
@@ -215,66 +237,29 @@ def main(config: dict):
             mlflow.log_metric("accuracy", accuracy, step=epoch)
             mlflow.log_metric("val_loss", val_loss, step=epoch)
             mlflow.log_metric("val_accuracy", val_accuracy, step=epoch)
-            mlflow.log_param("epoch", epoch)
-            mlflow.log_param("learning_rate", scheduler.get_last_lr()[0])
+            mlflow.log_metric("epoch", epoch)
+            mlflow.log_metric("learning_rate", scheduler.get_last_lr()[0])
 
 
             # Saving checkpoint
-            if epoch >= warmup_epochs and config["early_stopping"]["min_delta"] < best_loss - val_loss:
+            if epoch >= warmup_epochs and min_delta < best_loss - val_loss:
                 best_model = model
-                torch.save({
-                        "model_state": model.state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "loss": criterion.state_dict(),
-                        "epoch": epoch
-                }, os.path.join(checkpoint, "state.pth"))
+
+                artifact_path = f"model_checkpoint_epoch_{epoch}.pth"
+                mlflow.pytorch.log_model(best_model, artifact_path=artifact_path)
 
             # Early stopping
-            if "early_stopping" in config:
-                if config["early_stopping"]["min_delta"] < best_loss - val_loss:
-                    best_loss_epoch = epoch
-                    best_loss = val_loss
-                elif epoch - best_loss_epoch >= config["early_stopping"]["patience"]:
-                    print("Early stopping!")
-                    break
+            if min_delta < best_loss - val_loss:
+                best_loss_epoch = epoch
+                best_loss = val_loss
+            elif epoch - best_loss_epoch >= patience:
+                print("Early stopping!")
+                break
 
-        X, y = next(iter(spec_valid))
+        X, _ = next(iter(spec_valid))
         signature = mlflow.models.infer_signature(X, best_model(X).detach().numpy())
         mlflow.pytorch.log_model(best_model, "testing_testrun_model", signature=signature)
 
-
-    # Calculate test metrics and confusion matrix
-    # df_metrics = pd.DataFrame(metrics)
-    # df_metrics.to_csv(os.path.join(checkpoint, "metrics.csv"))
-    # save_results(checkpoint, best_model, cinic_test, criterion, classes)
-
-
-
-# def save_results(
-#         checkpoint: str,
-#         model: nn.Module,
-#         cinic_test: DataLoader,
-#         criterion: nn.CrossEntropyLoss,
-#         classes: list[str]
-# ):
-#     model.eval()
-#     test_accuracy, test_loss, test_targets, test_predictions = test_epoch(model,
-#                                                                           cinic_test, criterion)
-#     with open(os.path.join(checkpoint, "test_metrics.txt"), "w") as f:
-#         f.write(f"Test Loss: {test_loss:.4f} Test Accuracy: {test_accuracy:.4f}")
-
-#     # Confusion matrix
-#     disp = ConfusionMatrixDisplay.from_predictions(test_targets, test_predictions,
-#                                                    display_labels=classes)
-#     disp.figure_.savefig(os.path.join(checkpoint, "confusion_matrix_test.jpg"))
-
-#     # Confusion matrix without diagonal
-#     wrong_predictions_idx = test_targets != test_predictions
-#     test_targets = test_targets[wrong_predictions_idx]
-#     test_predictions = test_predictions[wrong_predictions_idx]
-#     disp = ConfusionMatrixDisplay.from_predictions(test_targets, test_predictions,
-#                                                    display_labels=classes)
-#     disp.figure_.savefig(os.path.join(checkpoint, "confusion_matrix_test_no_diag.jpg"))
 
 
 if __name__ == "__main__":
