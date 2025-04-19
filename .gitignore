@@ -1,0 +1,7 @@
+.venv/
+data/*
+.vscode/
+__pycache__/
+checkpoints/
+mlruns/
+mlartifacts/
