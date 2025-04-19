@@ -41,13 +41,13 @@ def get_datasets(data_path: str, batch_size: int):
     train_path = os.path.join(data_path, "train")
     valid_path = os.path.join(data_path, "valid")
     ds_train = ImageFolder(train_path, transform=T.Compose([
-        T.ToTensor(),
+        T.ToImage(),
         T.ToDtype(torch.uint8, scale=True),
         T.Resize((116, 116)),
         T.ToDtype(torch.float32, scale=True),
     ]))
     ds_valid = ImageFolder(valid_path, transform=T.Compose([
-        T.ToTensor(),
+        T.ToImage(),
         T.ToDtype(torch.uint8, scale=True),
         T.Resize((116, 116)),
         T.ToDtype(torch.float32, scale=True),
@@ -75,14 +75,14 @@ def train(
     for input, target in tqdm(train_ds):
         optimizer.zero_grad()
 
-        print("Input shape:", input.shape)
-        print("Target shape:", target.shape)
+        # print("Input shape:", input.shape)
+        # print("Target shape:", target.shape)
 
         input, target = input.cuda(), target.cuda()
         ohe_target = F.one_hot(target, num_classes).type(torch.float32).reshape(-1, num_classes)
         output = model(input)
-        print("Output shape:", output.shape)
-        print("OHE Target shape:", ohe_target.shape)
+        # print("Output shape:", output.shape)
+        # print("OHE Target shape:", ohe_target.shape)
         loss = criterion(output, ohe_target)
 
         loss.backward()
@@ -134,6 +134,9 @@ def evaluate(
 
 def main(config: dict):
     print("Starting training:")
+
+    experiment_name = config["experiment_name"]
+    print("Experiment name:", experiment_name)
 
     # Set seed for reproducibility
     seed = int(config["seed"]) if "seed" in config else 0
@@ -194,14 +197,15 @@ def main(config: dict):
     classes = spec_train.dataset.classes
     classes = sorted(classes, key=lambda x: spec_train.dataset.class_to_idx[x])
 
-    best_model = None
+    best_model = model.state_dict()
     best_loss = float("inf")
     best_loss_epoch = 0
 
+    previous = {"loss": float("inf"), "accuracy": 0.0, "val_loss": float("inf"), "val_accuracy": 0.0}
 
     # Setup MLflow
     mlflow.set_tracking_uri("http://localhost:3113")
-    mlflow.set_experiment("Testrun")
+    mlflow.set_experiment(experiment_name)
 
     with mlflow.start_run():
 
@@ -212,6 +216,9 @@ def main(config: dict):
         mlflow.log_param("batch_size", batch_size)
         mlflow.log_param("scheduler", config["scheduler"])
         mlflow.log_param("scheduler_params", config["scheduler_params"])
+        mlflow.log_params(config["model_params"])
+        mlflow.log_params(config["optimizer_params"])
+        mlflow.log_params(config["scheduler_params"])
 
         for epoch in range(epochs):
             print("Epoch", epoch)
@@ -227,11 +234,16 @@ def main(config: dict):
             scheduler.step()
 
             print(f"Epoch {epoch} finished")
-            print(f"Loss: {loss:.4f}", end=' ')
-            print(f"Accuracy: {accuracy:.4f}", end=' ')
-            print(f"Validation Loss: {val_loss:.4f}", end=' ')
-            print(f"Validation Accuracy: {val_accuracy:.4f}")
+            print(f"Loss: {loss:.4f}({(loss - previous['loss']):.4e})", end=' ')
+            print(f"Accuracy: {accuracy:.4f}({(accuracy - previous['accuracy']):.4e})", end=' ')
+            print(f"Validation Loss: {val_loss:.4f}({(val_loss - previous['val_loss']):.4e})", end=' ')
+            print(f"Validation Accuracy: {val_accuracy:.4f}({(val_accuracy - previous['val_accuracy']):.4e})")
             print()
+
+            previous["loss"] = loss
+            previous["accuracy"] = accuracy
+            previous["val_loss"] = val_loss
+            previous["val_accuracy"] = val_accuracy
 
             mlflow.log_metric("loss", loss, step=epoch)
             mlflow.log_metric("accuracy", accuracy, step=epoch)
@@ -243,10 +255,10 @@ def main(config: dict):
 
             # Saving checkpoint
             if epoch >= warmup_epochs and min_delta < best_loss - val_loss:
-                best_model = model
+                best_model = model.state_dict()
 
-                artifact_path = f"model_checkpoint_epoch_{epoch}.pth"
-                mlflow.pytorch.log_model(best_model, artifact_path=artifact_path)
+                artifact_path = f"model_checkpoint_epoch_{epoch}"
+                mlflow.pytorch.log_model(model, artifact_path=artifact_path)
 
             # Early stopping
             if min_delta < best_loss - val_loss:
@@ -256,9 +268,13 @@ def main(config: dict):
                 print("Early stopping!")
                 break
 
+        model.load_state_dict(best_model)
+        model.eval()
         X, _ = next(iter(spec_valid))
-        signature = mlflow.models.infer_signature(X, best_model(X).detach().numpy())
-        mlflow.pytorch.log_model(best_model, "testing_testrun_model", signature=signature)
+        X = X.cuda()
+        signature = mlflow.models.infer_signature(X.detach().cpu().numpy(), model(X).detach().cpu().numpy())
+        artifact_path = f"model_final_epoch_{best_loss_epoch}"
+        mlflow.pytorch.log_model(model, artifact_path, signature=signature)
 
 
 
