@@ -1,10 +1,10 @@
 {
-    "experiment_name": "SimpleTransformer_no_unknown",
-    "seed": 42,
-    "data_path": "./data/image_dataset_no_unknown",
+    "experiment_name": "undersampling_unknown",
+    "seed": 3,
+    "data_path": "./data/image_dataset",
     "model": "SimpleTransformer",
     "model_params": {
-        "num_classes": 10,
+        "num_classes": 11,
         "n_head": 4,
         "d_model": 128,
         "d_ff": 512,
@@ -19,7 +19,7 @@
     "epochs": 80,
     "warmup_epochs": 10,
     "batch_size": 512,
-    "checkpoint_folder": "./checkpoints/SimpleTransformer_no_unknown",
+    "checkpoint_folder": "./checkpoints/undersampling_unknown",
     "scheduler": "SequentialLR",
     "scheduler_params": {
         "schedulers": {

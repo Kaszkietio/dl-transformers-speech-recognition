@@ -18,6 +18,7 @@ from torchvision.transforms import v2 as T
 from tqdm import tqdm
 
 from models.simple_transformer import SimpleTransformer
+from custom_random_sampler import CustomRandomUndersampler
 from utils import set_seed, get_device
 
 MODELS = {
@@ -53,9 +54,12 @@ def get_datasets(data_path: str, batch_size: int):
         T.ToDtype(torch.float32, scale=True),
     ]))
 
-    loader_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True,
+    sampler_train = CustomRandomUndersampler(ds_train, shuffle=True)
+    sampler_valid = CustomRandomUndersampler(ds_valid, shuffle=False)
+
+    loader_train = DataLoader(ds_train, batch_size=batch_size, sampler=sampler_train,
                               num_workers=2, pin_memory=True)
-    loader_valid = DataLoader(ds_valid, batch_size=batch_size, shuffle=False,
+    loader_valid = DataLoader(ds_valid, batch_size=batch_size, sampler=sampler_valid,
                               num_workers=2, pin_memory=True)
     return loader_train, loader_valid
 
@@ -216,6 +220,7 @@ def main(config: dict):
         mlflow.log_param("batch_size", batch_size)
         mlflow.log_param("scheduler", config["scheduler"])
         mlflow.log_param("scheduler_params", config["scheduler_params"])
+        mlflow.log_param("seed", seed)
         mlflow.log_params(config["model_params"])
         mlflow.log_params(config["optimizer_params"])
         mlflow.log_params(config["scheduler_params"])
@@ -268,12 +273,10 @@ def main(config: dict):
                 print("Early stopping!")
                 break
 
-        model.load_state_dict(best_model)
-        model.eval()
         X, _ = next(iter(spec_valid))
         X = X.cuda()
         signature = mlflow.models.infer_signature(X.detach().cpu().numpy(), model(X).detach().cpu().numpy())
-        artifact_path = f"model_final_epoch_{best_loss_epoch}"
+        artifact_path = f"model_final_epoch_{epoch}"
         mlflow.pytorch.log_model(model, artifact_path, signature=signature)
 
 
