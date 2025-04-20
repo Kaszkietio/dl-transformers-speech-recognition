@@ -35,8 +35,7 @@ class CustomRandomUndersampler(Sampler):
             min_count = min(min_count, len(class_indices))
             indices.extend(class_indices)
 
-        if self.shuffle:
-            random.shuffle(unknown_indices)
+        random.shuffle(unknown_indices)
         indices.extend(unknown_indices[:min_count])
 
         if self.shuffle:

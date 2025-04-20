@@ -1,40 +1,24 @@
 {
-    "experiment_name": "undersampling_unknown",
-    "seed": 3,
-    "data_path": "./data/image_dataset",
-    "model": "SimpleTransformer",
+    "experiment_name": "known_unknown",
+    "seed": 1,
+    "data_path": "./data/image_dataset_known_unknown",
+    "model": "ResNet18",
     "model_params": {
-        "num_classes": 11,
-        "n_head": 4,
-        "d_model": 128,
-        "d_ff": 512,
-        "num_layers": 6,
-        "dropout": 0.3
+        "weights": null,
+        "num_classes": 2
     },
     "optimizer": "AdamW",
     "optimizer_params": {
       "lr": 0.001,
-      "weight_decay": 0.1
+      "weight_decay": 0.01
     },
     "epochs": 80,
     "warmup_epochs": 10,
     "batch_size": 512,
-    "checkpoint_folder": "./checkpoints/undersampling_unknown",
-    "scheduler": "SequentialLR",
+    "checkpoint_folder": "./checkpoints/known_unknown",
+    "scheduler": "ExponentialLR",
     "scheduler_params": {
-        "schedulers": {
-            "LinearLR" : {
-                "start_factor": 0.5,
-                "end_factor": 1.0,
-                "total_iters": 10
-            },
-            "ExponentialLR": {
-                "gamma": 0.9
-            }
-        },
-        "milestones": [
-            10
-        ]
+        "gamma": 0.9
     },
     "early_stopping": {
       "patience": 10,
