@@ -1,0 +1,6 @@
+{
+    "model_path": "mlflow-artifacts:/947938015951974038/671b14b561f34f22bcb06701bb1c8a80/artifacts/model_final_epoch_13",
+    "dataset_path": "./data/image_dataset_known_unknown/valid",
+    "output_path": "./metrics/testrun",
+    "batch_size": 512
+}
