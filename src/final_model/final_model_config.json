@@ -1,0 +1,10 @@
+
+{
+    "model_name": "FinalModel",
+    "base_10_path": "mlflow-artifacts:/601718926412786799/2e757d4867ce4f16ae87e1154b0f9158/artifacts/model_checkpoint_epoch_47",
+    "known_unknown_path": "mlflow-artifacts:/947938015951974038/671b14b561f34f22bcb06701bb1c8a80/artifacts/model_final_epoch_13",
+    "voice_silence_path": "mlflow-artifacts:/316023073530972627/41e4f9a0f59f405e899c4fa96811565a/artifacts/model_final_epoch_16",
+    "dataset_path": "./data/full_dataset/test",
+    "output_path": "./metrics/FinalModel",
+    "batch_size": 512
+}
