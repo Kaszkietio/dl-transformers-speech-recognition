@@ -33,28 +33,20 @@ def main(config: dict[str]):
 
     # Evaluate the model
     with torch.no_grad():
+        model.eval()
         for images, labels in tqdm(dataloader):
-            # print("Images shape:", images.shape)
-            # print("Labels shape:", labels.shape)
             images: torch.Tensor = images.cuda()
             labels: np.ndarray = labels.numpy()
 
             # Forward pass
             outputs: torch.Tensor = model(images)
             preds = torch.argmax(outputs, dim=1).cpu().numpy()
-            # print("Labels:", labels)
-            # print("Predictions:", preds)
 
             all_predictions.extend(preds)
             all_labels.extend(labels)
 
     labels = np.array(all_labels)
     preds = np.array(all_predictions)
-
-    print("Labels shape:", labels.shape)
-    print("Predictions shape:", preds.shape)
-    print("Labels:", labels[:100])
-    print("Predictions:", preds[:100])
 
     # Compute metrics
     accuracy = accuracy_score(labels, preds)
@@ -73,6 +65,16 @@ def main(config: dict[str]):
     print("F1 Score:", f1)
     print("Support:", support)
 
+    # Save metrics to CSV
+    df = pd.DataFrame({
+        "Class": dataset.classes,
+        "Precision": precision,
+        "Recall": recall,
+        "F1 Score": f1,
+        "Support": support
+    })
+    df.to_csv(os.path.join(config["output_path"], "metrics.csv"), index=False)
+
 
 
 
@@ -87,5 +89,7 @@ if __name__ == "__main__":
     with open(config_path, "r") as f:
         config = f.read()
 
-    config = json.loads(config)
-    main(config)
+    configs = json.loads(config)
+    for config in configs:
+        print("Evaluating with model:", config["model_name"])
+        main(config)

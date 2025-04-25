@@ -18,6 +18,8 @@ from torchvision.transforms import v2 as T
 from tqdm import tqdm
 
 from models.simple_transformer import SimpleTransformer
+from speech_activation.random_undersampler import CustomRandomUndersampler
+from speech_activation.cnn_sa import CNN_SA
 from utils import set_seed, get_device
 
 MODELS = {
@@ -43,7 +45,7 @@ def get_datasets(data_path: str, batch_size: int):
     ds_train = ImageFolder(train_path, transform=T.Compose([
         T.ToImage(),
         T.ToDtype(torch.uint8, scale=True),
-        T.Resize((116, 116)),
+        T.RandomCrop(size=(116, 116)),
         T.ToDtype(torch.float32, scale=True),
     ]))
     ds_valid = ImageFolder(valid_path, transform=T.Compose([
@@ -64,7 +66,7 @@ def train(
     model: nn.Module,
     train_ds: DataLoader,
     optimizer: torch.optim.Optimizer,
-    criterion: nn.CrossEntropyLoss
+    criterion: nn.CrossEntropyLoss,
 ):
     losses = []
     accuracies = []
@@ -179,7 +181,7 @@ def main(config: dict):
                                      schedulers=schedulers,
                                      milestones=scheduler_params["milestones"])
         else:
-            scheduler = SCHEDULERS[config["scheduler"]](**scheduler_params)
+            scheduler = SCHEDULERS[config["scheduler"]](optimizer, **scheduler_params)
 
     print("Scheduler:", scheduler)
     criterion = nn.CrossEntropyLoss()
@@ -269,12 +271,10 @@ def main(config: dict):
                 print("Early stopping!")
                 break
 
-        model.load_state_dict(best_model)
-        model.eval()
         X, _ = next(iter(spec_valid))
         X = X.cuda()
         signature = mlflow.models.infer_signature(X.detach().cpu().numpy(), model(X).detach().cpu().numpy())
-        artifact_path = f"model_final_epoch_{best_loss_epoch}"
+        artifact_path = f"model_final_epoch_{epoch}"
         mlflow.pytorch.log_model(model, artifact_path, signature=signature)
 
 
