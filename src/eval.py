@@ -58,15 +58,15 @@ def main(config: dict[str]):
 
     # Compute metrics
     accuracy = accuracy_score(labels, preds)
-    precision, recall, f1, support = precision_recall_fscore_support(labels, preds, labels=list(range(len(dataset.classes))), average="weighted")
+    precision, recall, f1, support = precision_recall_fscore_support(labels, preds, average=None,
+                                                                     labels=list(range(len(dataset.classes))))
 
     cm_display = ConfusionMatrixDisplay.from_predictions(labels, preds,
                                                          display_labels=dataset.classes,
                                                          cmap="Blues", normalize=None)
-    cm_display.plot()
-    plt.show()
-
     os.makedirs(config["output_path"], exist_ok=True)
+    cm_display.figure_.savefig(os.path.join(config["output_path"], "confusion_matrix.png"))
+
     print("Accuracy:", accuracy)
     print("Precision:", precision)
     print("Recall:", recall)
