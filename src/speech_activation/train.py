@@ -23,7 +23,7 @@ from speech_activation.cnn_sa import CNN_SA
 from utils import set_seed, get_device
 
 MODELS = {
-    "SimpleTransformer": SimpleTransformer,
+    "CNN_SA": CNN_SA,
 }
 
 OPTIMIZERS = {
@@ -55,9 +55,12 @@ def get_datasets(data_path: str, batch_size: int):
         T.ToDtype(torch.float32, scale=True),
     ]))
 
-    loader_train = DataLoader(ds_train, batch_size=batch_size, shuffle=True,
+    sampler_train = CustomRandomUndersampler(ds_train)
+    sampler_valid = CustomRandomUndersampler(ds_valid)
+
+    loader_train = DataLoader(ds_train, batch_size=batch_size, sampler=sampler_train,
                               num_workers=2, pin_memory=True)
-    loader_valid = DataLoader(ds_valid, batch_size=batch_size, shuffle=False,
+    loader_valid = DataLoader(ds_valid, batch_size=batch_size, sampler=sampler_valid,
                               num_workers=2, pin_memory=True)
     return loader_train, loader_valid
 

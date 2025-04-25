@@ -1,25 +1,25 @@
 {
-  "experiment_name": "undersampling_unknown",
-  "seed": 3,
-  "data_path": "./data/image_dataset",
+  "experiment_name": "SimpleTransformer_no_unknown",
+  "seed": 2,
+  "data_path": "./data/image_dataset_no_unknown",
   "model": "SimpleTransformer",
   "model_params": {
-    "num_classes": 11,
+    "num_classes": 10,
     "n_head": 4,
     "d_model": 128,
     "d_ff": 512,
     "num_layers": 6,
-    "dropout": 0.3
+    "dropout": 0.1
   },
   "optimizer": "AdamW",
   "optimizer_params": {
     "lr": 0.003,
-    "weight_decay": 0.1
+    "weight_decay": 0.01
   },
   "epochs": 80,
-  "warmup_epochs": 10,
+  "warmup_epochs": 5,
   "batch_size": 512,
-  "checkpoint_folder": "./checkpoints/undersampling_unknown",
+  "checkpoint_folder": "./checkpoints/SimpleTransformer_no_unknown",
   "scheduler": "SequentialLR",
   "scheduler_params": {
     "schedulers": {
