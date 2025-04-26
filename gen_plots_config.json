@@ -1,0 +1,75 @@
+{
+    "plots": [
+        {
+            "models": [
+                {
+                    "name": "MidRegularization3",
+                    "run_id": "d710e70303b747d5a7c2b96f4a70827a"
+                },
+                {
+                    "name": "MidRegularization2",
+                    "run_id": "a15d67128d864aca9c0e8ddf1bf94ddd"
+                },
+                {
+                    "name": "MidRegularization1",
+                    "run_id": "8be0943ce6ea4e67bb651bc5ec4e8a48"
+                },
+                {
+                    "name": "WeakRegularization1",
+                    "run_id": "22801242df6b4202b38c6ff05bf2de79"
+                }
+            ],
+            "output_path": "./plots/Regularization.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "UndersamplingUnknown1",
+                    "run_id": "485da71822434564af4dee1e2b3e35ea"
+                },
+                {
+                    "name": "UndersamplingUnknown2",
+                    "run_id": "bab2cb5576d54d9c9aa69c50f2d6110f"
+                },
+                {
+                    "name": "UndersamplingUnknown3",
+                    "run_id": "1c4ffa15e097435f9c24258e0c1a600a"
+                }
+            ],
+            "output_path": "./plots/Undersampling.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "ComputerVisionAugmentation",
+                    "run_id": "2e757d4867ce4f16ae87e1154b0f9158"
+                },
+                {
+                    "name": "MidRegularization3",
+                    "run_id": "d710e70303b747d5a7c2b96f4a70827a"
+                }
+            ],
+            "output_path": "./plots/ComputerVisionAugmentation.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "KnownUnknown",
+                    "run_id": "671b14b561f34f22bcb06701bb1c8a80"
+                }
+            ],
+            "output_path": "./plots/KnownUnknown.png"
+        },
+        {
+            "models": [
+                {
+                    "name": "VAD",
+                    "run_id": "41e4f9a0f59f405e899c4fa96811565a"
+                }
+            ],
+            "output_path": "./plots/VAD.png"
+        }
+
+    ],
+    "mlflow_tracking_uri": "http://localhost:3113"
+}
